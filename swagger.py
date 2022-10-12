@@ -110,15 +110,15 @@ def post_file():
     
     #import ke db
     data = df_tweet
-    sql_data = 'TRAINING.db' #- Creates DB names SQLite
+    sql_data = 'STORE_TWEET.db' #- Creates DB names SQLite
     conn = sq.connect(sql_data)
     cur = conn.cursor()
-    cur.execute('''DROP TABLE IF EXISTS TRAINING''')
-    data.to_sql('TRAINING', conn, if_exists='replace', index=False) # - writes the pd.df to SQLIte DB
+    cur.execute('''DROP TABLE IF EXISTS TWEET_DATA''')
+    data.to_sql('TWEET_DATA', conn, if_exists='replace', index=False) # - writes the df to SQLIte DB
     conn.commit()
     conn.close()
 
-    return jsonify({"halo": str(df['Tweet'][2])})
+    return jsonify({"RESULT": "SUCCESSFUL TO CREATE DB"})
 
 
 
