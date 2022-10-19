@@ -1,4 +1,5 @@
 import json
+from unittest import result
 from flask import Flask, request, jsonify
 from flasgger import Swagger, LazyString, LazyJSONEncoder, swag_from
 import re
@@ -39,31 +40,34 @@ swagger_config = {
 
 swagger = Swagger(app, template=swagger_template, config=swagger_config)
 
+#swagger form
 @swag_from("swagger_config_form.yml", methods = ['POST'])
 @app.route('/post_form/v1',methods = ['POST'])
 def post_form():
-    result = request.form["text"]
-    print(type(result))
-    result = replace_ascii(result)
-    result = remove_special_char(result)
-    result = remove_punctuation(result)
-    result = remove_whitespace_LT(result)
-    result = remove_whitespace_multiple(result) 
-    """
-    result = replace_ascii(result["text"])
-    result = remove_special_char(result["text"])
-    result = remove_punctuation(result["text"])
-    result = remove_whitespace_LT(result["text"])
-    result = remove_whitespace_multiple(result["text"]) 
-    """
-    return jsonify({"hasil input: ":result})
 
+    result_before = request.form["text"]
+    result_after = replace_ascii(result_before)
+    result_after = remove_special_char(result_after)
+    result_after = remove_punctuation(result_after)
+    result_after = remove_whitespace_LT(result_after)
+    result_after = remove_whitespace_multiple(result_after) 
+    df_result = pd.DataFrame(columns=['Before','After']).assign(Before = [result_before],After = [result_after])
+ 
+    #create and insert into db 
+    conn = sq.connect("STORE_TEXT.db")
+    df_result.to_sql('TEXT_DATA', conn, if_exists='append', index=False)
+    conn.commit()
+    conn.close()
+    return jsonify({"hasil input: ":result_after})
+
+
+#swagger file
 @swag_from("swagger_config_file.yml",methods =['POST'])
 @app.route("/post_file/v1",methods =['POST'])
 def post_file():
     file = request.files["file"]
     df = pd.read_csv(file, encoding='latin-1')
-    df = pd.DataFrame(df['Tweet'])
+    #df = pd.DataFrame(df['Tweet'])
 
     #cleansing
     #case fold 
@@ -82,10 +86,11 @@ def post_file():
     df['Tweet_Clean']= df['Tweet_Clean'].apply(remove_single_char)
     #hapus url
     df['Tweet_Clean'] = df['Tweet_Clean'].apply(remove_urls)
-    df_tweet = pd.DataFrame().assign(Before=df['Tweet'], After=df['Tweet_Clean'])
+    #df_tweet = pd.DataFrame().assign(Before=df['Tweet'], After=df['Tweet_Clean'])
     
     #import ke db
-    data = df_tweet
+    #data = df_tweet
+    data = df
     sql_data = 'STORE_TWEET.db' #- Creates DB names SQLite
     conn = sq.connect(sql_data)
     cur = conn.cursor()
